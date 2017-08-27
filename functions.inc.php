@@ -122,7 +122,7 @@ function sccp_list_keysets() {
     foreach ($ast_out as $line) {
 	if (strlen($line) > 3) {
 	    $line = substr($line,2);
-	    list ($line,$junk) = split(' ',$line);
+	    list ($line,$junk) = explode(' ',$line);
 	    if (strlen($ast_key[$line]) < 1) {
 		$ast_key[$line] = $line;;
 	    }
@@ -254,12 +254,19 @@ function sccp_get_dev_assoc($extension) {
 }
 
 function get_buttons_devtype($type) {
+    global $db;
+    $i = 0;
+    $sql = "SELECT dns, buttons
+		FROM sccpdevmodel
+		WHERE model='$type' ";
 
-    $res = mysql_query("SELECT dns, buttons
-			FROM sccpdevmodel
-			WHERE model='$type' ");
-			
-    while ($row = mysql_fetch_row($res)) {
+    $res = $db->getAll($sql);
+
+    if(DB::IsError($res)) {
+        die_freepbx($res->getMessage().$sql);
+    }
+
+    while ($row = $res[$i++]) {
 	$modelData['dns'] = $row[0];
 	$modelData['buttons'] = $row[1];
     }
@@ -288,7 +295,7 @@ function sccp_add_device($devData, $buttonData) {
 	if ($buttonData['type'.$numButton] == 'line') {
 	    $sql = "INSERT IGNORE INTO sccpline
 		(id, name, label, description, mailbox, cid_num, cid_name)
-		VALUES ('{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', 'Extension {$buttonData['name'.$numButton]}', 'Line {$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}' )";
+		VALUES ('{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', 'Line {$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}', '{$buttonData['name'.$numButton]}' )";
 	    
 	    $result = $db->query($sql);
 	    if(DB::IsError($result)) {
@@ -310,7 +317,8 @@ function sccp_add_device($devData, $buttonData) {
 	}
 	$numButton++;	
     }  
-    sccp_edit_tftp($devData['name']);	    
+    $tftpdisplay=$devData['name'];
+    sccp_edit_tftp($tftpdiplay,$devData);	    
 }
 
 
@@ -457,13 +465,20 @@ function sccp_delete_extension($extension) {
 
 function sccp_get_model_data(){
     global $db;
+    $i = 0;
 	
-    $res = mysql_query("SELECT model, dns, buttons, loadimage
+    $sql = "SELECT model, dns, buttons, loadimage
 			FROM sccpdevmodel
 			WHERE dns > 0
-			ORDER BY model ");
-			
-    while ($row = mysql_fetch_row($res)) {
+			ORDER BY model ";
+
+    $res = $db->getAll($sql);
+
+    if(DB::IsError($res)) {
+        die_freepbx($res->getMessage().$sql);
+    }
+
+    while ($row = $res[$i++]) {
 	$modelData['model'][] = $row[0];
 	$modelData['dns'][] = $row[1];
 	$modelData['buttons'][] = $row[2];
@@ -474,14 +489,21 @@ function sccp_get_model_data(){
 
 function sccp_get_addon_data(){
     global $db;
-	
-    $res = mysql_query("SELECT model, buttons, loadimage
+	$i=0;
+    $sql = "SELECT model, buttons, loadimage
 			FROM sccpdevmodel
 			WHERE dns = 0
-			ORDER BY model ");
-			
-    while ($row = mysql_fetch_row($res)) {
+			ORDER BY model ";
+
+    $res = $db->getAll($sql);
+
+    if(DB::IsError($res)) {
+        die_freepbx($res->getMessage().$sql);
+    }
+
+    while ($row = $res[$i++]) {
 	$addonData['model'][] = $row[0];
+
 	$addonData['buttons'][] = $row[1];
 	$addonData['loadimage'][] = $row[2];
     }
@@ -660,7 +682,7 @@ function sccp_get_confData($type) {
 		$confData['type'] = $type;
 	    }
 	    if ($file_context == "$search" && strpos($input,"=")) {
-		list($field,$value) = split("=",$input);
+		list($field,$value) = explode("=",$input);
 		if ($field == 'allow') {
 		    $confData['allow'] .= $value . ',';
 		} else {
@@ -676,6 +698,7 @@ function sccp_get_confData($type) {
 //
 // Special Fields - these are returned if we are searching for [general]
 //
+$confData['language'] = ru;
     if ($search == '[general]') {
 	$bindaddr = $confData['bindaddr'];
 	if ($binaddr == '') {
@@ -760,82 +783,39 @@ function sccp_get_tftp($tftpdisplay) {
     return($tftpData);
 }
 
-function sccp_edit_tftp($tftpdisplay,$tftpData) {
-    global $db;
-
+function sccp_edit_tftp($tftpdisplay,$devData) {
+   
+    $tftpdisplay=$devData['name'];
     $filename = "/tftpboot/$tftpdisplay.cnf.xml";
-    $tftpfile = file_get_contents($inputfile);
-//
-// I know this look crazy, but we pull the "<Default>" tags from the
-// XMLDefault.cnf.xml file to create a template of a new file. If the 
-// file exists, we don't screw with it.
-//
-    if (strlen($tftpfile) < 24) {
-	$inputfile = "/tftpboot/SEP-Master.cnf.xml";
-	$tftpfile = file_get_contents($inputfile);
+    
+ $alt_content = file_get_contents("/tftpboot/SEP-Master.cnf.xml");
+global $db;
+$i = 0;
+ $sql = "SELECT imageversion,addon   FROM sccpdeviceconfig where name = '$tftpdisplay'";
+ $res = $db->getAll($sql);
+ if(DB::IsError($res)) {
+        die_freepbx($res->getMessage().$sql);
     }
+    while ($row = $res[$i++]) {
+ 	$imageversion = $row[0];
+ 	$addonname = $row[1];
+     }
+$alt_content = preg_replace('/PUTFIRMWARE\b/',$imageversion,$alt_content);
+$i = 0;
+if ($addonname != 'NULL') {
+	$sql = "SELECT loadimage FROM sccpdevmodel where model = '$addonname'";
+	$res = $db->getAll($sql);
+	if(DB::IsError($res)) {
+        die_freepbx($res->getMessage().$sql);
+		}
+		while ($row = $res[$i++]) {
+		$loadimage = $row[0];
+		}
+   $alt_content = preg_replace('/PUTFIRMWAREADDON\b/',$loadimage,$alt_content);
+}
 
-    $xml = simplexml_load_string($tftpfile);
-    $json = json_encode($xml);
-    $confData = json_decode($json,TRUE);
+file_put_contents($filename, $alt_content);
 
-//
-// At this point, we have all the data in the system.
-//
-    $confData['devicePool']['callManagerGroup']['members']['member']['callManager']["ports"]["ethernetPhonePort"] = $tftpData['port'];
-    $confData['devicePool']['callManagerGroup']['members']['member']['@attributes']['priority'] = "0";
-    $confData['devicePool']['callManagerGroup']['members']['member']['callManager']["processNodeName"] = $tftpData['bindaddr'];
-
-    $confData['versionStamp'] = $tftpData['versionStamp']; 
-    $confData['loadInformation'] = $tftpData['loadInformation'];
-    $addonidx = $devData['addonidx'];
-    if ($tftpdisplay != 'XMLDefault') {
-	if (is_numeric($addonidx) && $addonidx < 1) {
-	    unset($confData["addOnModules"]);
-	}
-	if (is_numeric($addonidx) && $addonidx == 1) {
-	    $confData["addOnModules"]["addOnModule"]['@attributes']["idx"] = "1";
-	    $confData["addOnModules"]["addOnModule"]["loadInformation"] = $tftpData['module_loadinfo'];
-	}
-	if (is_numeric($addonidx) && $addonidx == 2) {
-	    $confData["addOnModules"]["addOnModule"]['@attributes']["idx"] = "2";
-	    $confData["addOnModules"]["addOnModule"]["loadInformation"] = $tftpData['module_loadinfo'];
-	}
-    } else {
-	unset($confData["addOnModules"]);
-	unset($confData["loadInformation"]);
-    }
-    $confData['userLocale']['name'] = $tftpData['locale_name'];
-    $confData['userLocale']['langCode'] = $tftpData['locale_code'];
-    $confData['directoryURL'] = $tftpData['directoryURL'];
-    $confData['idleTimeout'] = $tftpData['idleTimeout'];
-    $confData['idleURL'] = $tftpData['idleURL'];
-    $confData['proxyServerURL'] = $tftpData['proxyServerURL'];
-    $confData['servicesURL'] = $tftpData['servicesURL'];
-    $confData['autoSelectLineEnable'] = $tftpData['autoSelectLineEnable'];
-    $confData['autoCallSelect'] = $tftpData['autoCallSelect'];
-
-    if ($tftpdisplay == 'XMLDefault') {
-	$res = mysql_query("SELECT vendor, model, loadimage, loadinformationid
-			FROM sccpdevmodel
-			WHERE loadinformationid IS NOT NULL 
-			AND loadimage IS NOT NULL
-			ORDER BY loadinformationid ");
-			
-	while ($row = mysql_fetch_row($res)) {
-	    $vendor = $row[0];
-	    $model = $row[1];
-	    $model = preg_replace('/(,.*)/','',$model);
-	    $loadimage = $row[2];
-	    $loadinfo = $row[3];
-	    $confData[$loadinfo] = array('@attributes' => array('model' => "$vendor $model"), '@value' => "$loadimage");
-	}
-	$xml = Array2XML::createXML('default', $confData);
-    } else {
-	$xml = Array2XML::createXML('device', $confData);
-    }
-    $outfile = $xml->saveXML();
-    file_put_contents($filename, $outfile);
     chmod ($filename,0666);
 
     return;
@@ -865,6 +845,7 @@ function arrayToXML(Array $array, SimpleXMLElement $xml) {
 
 function sccp_get_tftp_loadlist($model) {
     global $db;
+    $i = 0; 
 
     if (strtoupper($model) == 'DEFAULT') {
 	$where = "WHERE loadimage IS NOT NULL";
@@ -872,12 +853,17 @@ function sccp_get_tftp_loadlist($model) {
 	$where = "WHERE model = '$model'";
     }
 	
-    $res = mysql_query("SELECT loadinformationid,loadimage 
+    $sql = "SELECT loadinformationid,loadimage 
 		FROM sccpdevmodel
 		$where
-		ORDER BY loadinformationid");    
+		ORDER BY loadinformationid";
 
-    while ($row = mysql_fetch_row($res)) {
+    $res = $db->getAll($sql);
+    if(DB::IsError($res)) {
+        die_freepbx($res->getMessage()."<br><br>Error getting loadlist");
+    }
+ 
+    while ($row = $res[$i++]) {
 	if (strtoupper($model) == 'DEFAULT') {
 	    $loadlist[$row[0]] = $row[1];
 	} else {
@@ -992,7 +978,7 @@ function sccp_edit_devmodel($devmodel) {
     global $db;
 
     foreach ($devmodel as $field => $value) {
-	list ($field, $model) = split('_',$field);
+	list ($field, $model) = preg_split('_',$field);
 	if ($field == "del" && $value == 'on') {
 	    $dquery = "DELETE FROM sccpdevmodel WHERE model = '$model';";
             $result = $db->query($dquery);
@@ -1034,15 +1020,15 @@ function sccp_edit_devmodel($devmodel) {
 //
 function sccp_create_osf() {
     global $db;
-
+$i = 0;
     $query = "SELECT * FROM sccpdevmodel WHERE model LIKE '79%' AND loadimage != '' AND dns > 0";
-    $res = mysql_query($query);	
     
+    $res = $db->getAll($query);
     if(DB::IsError($res)) {
         die_freepbx($res->getMessage()."Failed OS File create $query");
     }
     $name = 'not written';
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res[$i++]) {
 	$model = $row['model'];
 	$loadimage = $row['loadimage'];
 	if ($model == '7940' && $name != '79XX') {
@@ -1221,4 +1207,3 @@ class Array2XML {
     }
 }
 ?>
-

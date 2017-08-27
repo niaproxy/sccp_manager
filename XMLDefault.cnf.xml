@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <default>
   <deviceProtocol>SCCP</deviceProtocol>
   <devicePool>
@@ -9,16 +8,16 @@
             <ports>
               <ethernetPhonePort>2000</ethernetPhonePort>
             </ports>
-            <processNodeName>192.168.3.2</processNodeName>
+            <processNodeName>10.16.167.80</processNodeName>
           </callManager>
         </member>
       </members>
     </callManagerGroup>
   </devicePool>
-  <versionStamp>(Mar 28 2015 10:03:24)</versionStamp>
-  <userLocale>
-    <name>English_United_States</name>
-    <langCode>US</langCode>
+  <versionStamp>(Mar 28 2017 10:03:24)</versionStamp>
+    <userLocale>
+    <name>Russian_Russia</name>
+    <langCode>RU</langCode>
   </userLocale>
   <directoryURL>http://192.168.3.2/cisco/services/StaticDir.xml</directoryURL>
   <idleTimeout>60</idleTimeout>
@@ -45,11 +44,11 @@
   <loadInformation348 model="CISCO 7931">SCCP31.8-3-1S</loadInformation348>
   <loadInformation365 model="CISCO 7921">CP7921G-1.0.3</loadInformation365>
   <loadInformation369 model="CISCO 7906">SCCP11.8-3-1S</loadInformation369>
-  <loadInformation404 model="CISCO 7962">P00308000600</loadInformation404>
-  <loadInformation434 model="CISCO 7942">P00308000600</loadInformation434>
+  <loadInformation404 model="CISCO 7962">SCCP42.8-4-2S</loadInformation404>
+  <loadInformation434 model="CISCO 7942">SCCP42.8-4-2S</loadInformation434>
   <loadInformation435 model="CISCO 7945">P00308000600</loadInformation435>
   <loadInformation436 model="CISCO 7965">P00308000600</loadInformation436>
   <loadInformation6 model="CISCO 7910">P00405000700</loadInformation6>
-  <loadInformation7 model="CISCO 7960">P00308000500</loadInformation7>
-  <loadInformation8 model="CISCO 7940">P00308000500</loadInformation8>
+  <loadInformation7 model="CISCO 7960">P00308010100</loadInformation7>
+  <loadInformation8 model="CISCO 7940">P00308010100</loadInformation8>
 </default>

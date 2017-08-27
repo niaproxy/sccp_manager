@@ -16,7 +16,7 @@
  */
 
 function check_website($check_url) {
-    $headers = @get_headers($check_url);
+    $headers = $check_url;
     if(strpos($headers[0],'200') > 0) {
         $retval = "<td><A HREF='$check_url'><img src='/admin/modules/sccp_manager/check.png'></img></A></td>";
     } else {
